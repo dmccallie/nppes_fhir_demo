@@ -7,5 +7,14 @@ Requires:
 - gunicorn - WSGI gateway to expose the Flask app to the web
 
 
-More instructions coming soon...
+Very brief instructions:
+- Install Elasticsearch. I took all the defaults, which is overkill, but it works
+- Pip install Flask, elasticsearch helper routines, and gunicorn
+- Download the 5GB NPPES file from CMS, and edit "bulk_load_nppes" to point to it
+- Run 'bulk_load_nppes', pointing to your local install of ElasticSearch. 3.7M records loads in about 5-6 minutes on my i7/SSD
+- Run "serve_nppes' to test locally (defaults to 127.0.0.1:5000)
+- Deploy to web by running gunicorn in front of serve_nppes
+
+
+More details later...
   
