@@ -1,0 +1,74 @@
+{% extends "layout.html" %}
+{% block content %}
+<script type="text/javascript">
+  $(function() {
+    $("#search_form").submit(function() {
+         $.ajax({
+            type: "GET",
+            url: $SCRIPT_ROOT + "nppes/lookup",
+            contentType: "application/json; charset=utf-8",
+            data: { queryText: $('input[name="queryText"]').val() },
+            success: function(data) {
+                $('#example').DataTable().clear();
+                $('#example').DataTable().rows.add(data.data).draw();
+                $('#hits').val(data.hits)
+                $('#msec').val(data.time)
+              }
+            });
+        });     
+    });
+  //});
+
+  $(document).ready(function() {
+    
+    $('#example').DataTable( {
+      paging: false,
+      searching: false
+     })
+  });
+
+</script>
+
+<form id="search_form" onsubmit="return false">
+<fieldset style="padding:5px">
+<legend><bold>Search for a provider - enter name and/or city, state, specialty</bold></legend>
+  <input type="text" size="100" id="queryText" name="queryText" style="padding:5px">
+  <p>
+  <button type="submit" id="submitBtn" name="submitBtn" style="padding:5px">Find Providers</button>
+</fieldset>
+</form>
+<p>
+<form id ="stats">
+<label style="padding-right:10px">Hits:<input type="text" size=30 id="hits" name="hits"  readonly></label>
+<label style="padding-right:10px padding-left:20px">mSec:<input type="text" size=30 id="msec" name="msec"  readonly></label>
+</form>
+<p>
+<strong><div id="echoResult"></div>Matching Providers</strong>
+<table id="example" class="display compact" cellspacing="0" width="100%">
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Title</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Direct</th>
+                <th>Specialty</th>
+                <th>Sub-specialty</th>
+            </tr>
+        </thead>
+ 
+        <tfoot>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Title</th>
+                <th>City</th>
+                <th>State</th>
+                <th>Direct</th>
+                <th>Specialty</th>
+                <th>Sub-specialty</th>
+            </tr>
+        </tfoot>
+    </table>
+{% endblock %}

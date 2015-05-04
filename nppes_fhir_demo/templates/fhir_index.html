@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+{% block content %}
+<script type="text/javascript">
+  $(function() {
+    $("#fhir_search_form").submit(function() {
+         $.ajax({
+            type: "GET",
+            url: $SCRIPT_ROOT + "nppes/Practitioner",
+            contentType: "application/json; charset=utf-8",
+            data: { family:        $('input[name="lastName"]'   ).val(),
+                    given:         $('input[name="firstName"]'  ).val(),
+                    address:       $('input[name="address"]'    ).val(), 
+                    qualification: $('input[name="credential"]' ).val(),
+                    specialty:     $('input[name="specialty"]'  ).val()                    
+                  },
+            success: function(data) {
+                $('#example').DataTable().clear();
+                for (var i = 0; i<data.data.length; i++) {
+                    var doc = data.data[i];
+                    specs = getSpecialties(doc);
+                    $('#example').DataTable().row.add( [
+                      doc.name.given[0],
+                      doc.name.family[0],
+                      doc.name.suffix[0],
+                      doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
+                      doc.telecom[0].value,
+                      specs.spec1,
+                      specs.spec2
+                    ]);
+                }
+                $('#example').DataTable().draw();
+                $('#hits').val(data.hits)
+                $('#msec').val(data.time)
+              }
+            });
+        });
+    });
+  //});
+
+  function getSpecialties(doc) {
+    var spec1 = ""
+    var spec2 = ""
+    if (doc.hasOwnProperty('practitionerRole')) {
+      pr = doc.practitionerRole[0];
+      if (pr.hasOwnProperty('specialty')) {
+        spec1 = pr.specialty[0].text;
+        if (pr.specialty.length > 1) {
+          spec2 = pr.specialty[1].text;
+        }
+      } 
+    }
+    return { 'spec1':spec1, 'spec2':spec2 }
+  }
+
+  $(document).ready(function() {
+    
+    $('#example').DataTable( {
+      paging: false,
+      searching: false
+     })
+  });
+
+</script>
+
+
+<form id="fhir_search_form" onsubmit="return false">
+<fieldset style="padding:5px">
+<legend><bold>Search for a provider - enter name and/or address (street, city, state,) credential, or specialty</bold></legend>
+  <label for="lastName" style="padding-right:10px">Last Name:</label><input type="text" size="30" id="lastName" name="lastName" style="padding:5px">
+  <br>
+  <label for="firstName" style="padding-right:10px">First Name:</label><input type="text" size="30" id="firstName" name="firstName" style="padding:5px">
+  <br>
+  <label for="address" style="padding-right:10px">Address:</label><input type="text" size="30" id="address" name="address" style="padding:5px">
+  <br>
+  <label for="credential" style="padding-right:10px">Credential:</label><input type="text" size="30" id="credential" name="credential" style="padding:5px">
+  <br>
+  <label for="specialty" style="padding-right:10px">Specialty:</label><input type="text" size="30" id="specialty" name="specialty" style="padding:5px">
+  <br>
+  <br><br>
+  <button type="submit" id="submitBtn" name="submitBtn" style="padding:8px">Find Providers</button>
+</fieldset>
+</form>
+
+</form>
+<form id ="stats">
+<label style="padding-right:10px">Hits:</label><input type="text" size=30 id="hits" name="hits"  readonly>
+<label style="padding-right:10px padding-left:20px">mSec:</label><input type="text" size=30 id="msec" name="msec"  readonly>
+</form>
+
+<strong><div id="echoResult"></div>Matching Providers</strong>
+<table id="example" class="display compact" cellspacing="0" width="100%" style="font-size:14px">
+        <thead>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th style="width:10">Credential</th>
+                <th>Address</th>
+                <th>Direct</th>
+                <th>Specialty</th>
+                <th>Sub-specialty</th>
+            </tr>
+        </thead>
+ 
+        <tfoot>
+            <tr>
+                <th>First Name</th>
+                <th>Last Name</th>
+                <th>Credential</th>
+                <th>Address</th>
+                <th>Direct</th>
+                <th>Specialty</th>
+                <th>Sub-specialty</th>
+            </tr>
+        </tfoot>
+    </table>
+{% endblock %}
