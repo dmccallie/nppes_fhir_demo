@@ -5,6 +5,7 @@ Requires:
 - Elasticsearch - to serve as database for NPPES records (Lucene)
 - Flask - simple python web server
 - gunicorn - WSGI gateway to expose the Flask app to the web
-<br><br>
+
+
 More instructions coming soon...
   
