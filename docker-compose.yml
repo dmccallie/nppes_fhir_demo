@@ -5,6 +5,7 @@ web:
    - "5000:5000"
   volumes:
    - .:/code
+   - ./NPPES_data:/data
   links:
    - esdb
 esdb:
