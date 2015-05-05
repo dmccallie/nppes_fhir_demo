@@ -173,9 +173,14 @@ def convert_to_Practitioner(es_provider_doc):
 
 #main program here
 
+import os
+es_server = os.environ['ESDB_PORT_9200_TCP_ADDR'] or '127.0.0.1'
+es_port = os.environ['ESDB_PORT_9200_TCP_PORT'] or '9200'
+
 try:
-	#connect to ElasticSearch, use all defaults
-	es = elasticsearch.Elasticsearch()
+	es = elasticsearch.Elasticsearch([
+	'%s:%s'%(es_server, es_port)  #point this to your elasticsearch service endpoint
+	]) 
 	print "connected to ES"
 except:
 	print "FAILED to connect to ES "
@@ -184,4 +189,4 @@ except:
 #if called locally (without gunicorn) then run on localhost port 5000 for debugging
 #otherwise, gunicorn will invoke the "app" entrypoint for WSGI conversation
 if __name__ == '__main__':
-	app.run(host="127.0.0.1", port=5000, debug=True)
+	app.run(host="0.0.0.0", port=5000, debug=True)
