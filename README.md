@@ -18,3 +18,17 @@ Very brief instructions:
 
 More details later...
   
+
+## Dockerized version
+
+### Requirements
+
+ * Install docker (https://docs.docker.com/installation/)
+ * Install docker-compose (https://docs.docker.com/compose/install/)
+
+### Setup
+
+ * Launch the stack: `docker-compose up`
+ * Load sample data: `docker-compose run web python /code/nppes_fhir_demo/load_nppes_bulk.py`
+ * Try it: browse to http://host/nppes_fhir
+ * View logs `docker-compose logs`

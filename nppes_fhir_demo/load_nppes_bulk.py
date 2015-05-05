@@ -5,7 +5,7 @@ from elasticsearch import helpers
 import json
 import time
 
-nppes_file = "../NPPES_data/npidata_20050523-20150308.csv" #download this 5GB file from CMS!
+nppes_file = "/data/npidata_20050523-20150412.csv" #download this 5GB file from CMS!
 nucc_file  = "../NPPES_data/nucc_taxonomy_150.csv"
 
 #this is the reference data used to specificy provider's specialties
@@ -95,8 +95,14 @@ def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
 
 count = 0
 nucc_dict = load_taxonomy(nucc_file)
+
+import os
+es_server = os.environ['ESDB_PORT_9200_TCP_ADDR'] or '127.0.0.1'
+es_port = os.environ['ESDB_PORT_9200_TCP_PORT'] or '9200'
+
+
 es = Elasticsearch([
-	'127.0.0.1:9200'  #point this to your elasticsearch service endpoint
+	'%s:%s'%(es_server, es_port)  #point this to your elasticsearch service endpoint
 	]) 
 
 start = time.time()
