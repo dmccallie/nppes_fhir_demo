@@ -1,8 +1,7 @@
 web:
   build: .
-  command: python /code/nppes_fhir_demo/serve_nppes.py
   ports:
-   - "5000:5000"
+   - "8888:80"
   volumes:
    - .:/code
    - ./NPPES_data:/data
