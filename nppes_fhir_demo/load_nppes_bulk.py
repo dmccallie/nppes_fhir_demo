@@ -97,8 +97,8 @@ count = 0
 nucc_dict = load_taxonomy(nucc_file)
 
 import os
-es_server = os.environ['ESDB_PORT_9200_TCP_ADDR'] or '127.0.0.1'
-es_port = os.environ['ESDB_PORT_9200_TCP_PORT'] or '9200'
+es_server = os.environ.get('ESDB_PORT_9200_TCP_ADDR') or '127.0.0.1'
+es_port = os.environ.get('ESDB_PORT_9200_TCP_PORT') or '9200'
 
 
 es = Elasticsearch([

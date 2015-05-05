@@ -174,8 +174,8 @@ def convert_to_Practitioner(es_provider_doc):
 #main program here
 
 import os
-es_server = os.environ['ESDB_PORT_9200_TCP_ADDR'] or '127.0.0.1'
-es_port = os.environ['ESDB_PORT_9200_TCP_PORT'] or '9200'
+es_server = os.environ.get('ESDB_PORT_9200_TCP_ADDR') or '127.0.0.1'
+es_port = os.environ.get('ESDB_PORT_9200_TCP_PORT') or '9200'
 
 try:
 	es = elasticsearch.Elasticsearch([
