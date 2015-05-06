@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, render_template, request
 import elasticsearch
 import json
+import urllib
 
 #creates WSGI entry point for gunicorn
 app = Flask(__name__)
@@ -53,13 +54,22 @@ def lookup():
 #FHIR Practitioner search service
 @app.route('/nppes/Practitioner', methods=['GET'])
 def fhir_lookup():
+
 	#only supports these FHIR fields for demo
-	family        	= request.args.get('family').strip()
-	given         	= request.args.get('given').strip()
-	address       	= request.args.get('address').strip()
-	qualification 	= request.args.get('qualification').strip()
+	family        	= request.args.get('family', '').strip()
+	given         	= request.args.get('given', '').strip()
+	address       	= request.args.get('address', '').strip()
+	qualification 	= request.args.get('qualification', '').strip()
 	#specialty_code  = request.args.get('specialty').strip() #for now, this gets IGNORED!
-	specialty_text  = request.args.get('specialty:text').strip() #FHIR uses :text for text search on tokens
+	specialty_text  = request.args.get('specialty:text', '').strip() #FHIR uses :text for text search on tokens
+	page            = request.args.get('page', 1, type=int) #which page to start with
+	count           = request.args.get('_count', 15, type=int) #results per page
+
+	#calculate starting point
+	startfrom = (page-1) * count
+
+	#nextUrl = '%s?family=%s&?given=%s&page=%s&_count=%s'%(request.base_url,family,given,page+1,count)
+	#print "nextURL = ", nextUrl
 
 	queryText = ""
 	wildcard = "*"  #lucene wildcard is applied to some of the search parameters
@@ -85,7 +95,7 @@ def fhir_lookup():
 	#invoke ElasticSearch usign the "lucene query mode"
 	#for demo, just fetch first 50 matches.  Need to convert this to "paging" model at some point!
 	try:
-		es_reply = es.search(index='nppes', default_operator="AND", size=50, q=queryText)
+		es_reply = es.search(index='nppes', default_operator="AND", size=count, from_=startfrom, q=queryText)
 	except:
 		print "FAILED to query ES "
 		raise
@@ -98,13 +108,21 @@ def fhir_lookup():
 	#get root of results
 	hits = es_reply['hits']['hits']
 	providers = []
-	for h in hits:
-		src = h['_source']
-		a_doc = convert_to_Practitioner(src)
-		providers.append(a_doc)
+	if (len(hits) > 0):
+		done = False
+		for h in hits:
+			src = h['_source']
+			a_doc = convert_to_Practitioner(src)
+			providers.append(a_doc)
+	else:
+		done = True
+
+	#calculate next and prev page.  Don't go past end of hits
+	nextPage = page+1 if not done else page
+	prevPage = page-1 if page > 1 else 1
 
 	#This is not really a legal FHIR return.  But it's close enough for demo
-	return jsonify({'hits':total, 'time':time, 'data': providers})
+	return jsonify({'hits':total, 'time':time, 'data': providers, 'nextPage':nextPage,'prevPage':prevPage})
 
 
 #utility routines

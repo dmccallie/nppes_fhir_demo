@@ -11,31 +11,77 @@
                     given:            $('input[name="firstName"]'  ).val(),
                     address:          $('input[name="address"]'    ).val(), 
                     qualification:    $('input[name="credential"]' ).val(),
-                    'specialty:text': $('input[name="specialty"]'  ).val()                    
+                    'specialty:text': $('input[name="specialty"]'  ).val(),
+                    page: 1,
+                    _count: 15       
                   },
             success: function(data) {
-                $('#example').DataTable().clear();
-                for (var i = 0; i<data.data.length; i++) {
-                    var doc = data.data[i];
-                    specs = getSpecialties(doc);
-                    $('#example').DataTable().row.add( [
-                      doc.name.given[0],
-                      doc.name.family[0],
-                      doc.name.suffix[0],
-                      doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
-                      doc.telecom[0].value,
-                      specs.spec1,
-                      specs.spec2
-                    ]);
-                }
-                $('#example').DataTable().draw();
-                $('#hits').val(data.hits)
-                $('#msec').val(data.time)
-              }
-            });
+              update_table(data);
+            }
+          });
         });
+      $('#nextBtn').click(function() {
+        //alert("clicked");
+         $.ajax({
+            type: "GET",
+            url: $SCRIPT_ROOT + "nppes/Practitioner",
+            contentType: "application/json; charset=utf-8",
+            data: { family:           $('input[name="lastName"]'   ).val(),
+                    given:            $('input[name="firstName"]'  ).val(),
+                    address:          $('input[name="address"]'    ).val(), 
+                    qualification:    $('input[name="credential"]' ).val(),
+                    'specialty:text': $('input[name="specialty"]'  ).val(),
+                    page: nextPage,
+                    _count: 15       
+                  },
+            success: function(data) {
+              update_table(data);
+            }
+          });      
+        });
+      $('#prevBtn').click(function() {
+        //alert("clicked");
+         $.ajax({
+            type: "GET",
+            url: $SCRIPT_ROOT + "nppes/Practitioner",
+            contentType: "application/json; charset=utf-8",
+            data: { family:           $('input[name="lastName"]'   ).val(),
+                    given:            $('input[name="firstName"]'  ).val(),
+                    address:          $('input[name="address"]'    ).val(), 
+                    qualification:    $('input[name="credential"]' ).val(),
+                    'specialty:text': $('input[name="specialty"]'  ).val(),
+                    page: prevPage,
+                    _count: 15       
+                  },
+            success: function(data) {
+              update_table(data);
+            }
+          });      
+        });      
     });
   //});
+
+  function update_table (data) {
+      $('#example').DataTable().clear();
+      for (var i = 0; i<data.data.length; i++) {
+          var doc = data.data[i];
+          specs = getSpecialties(doc);
+          $('#example').DataTable().row.add( [
+            doc.name.given[0],
+            doc.name.family[0],
+            doc.name.suffix[0],
+            doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
+            doc.telecom[0].value,
+            specs.spec1,
+            specs.spec2
+          ]);
+      }
+      $('#example').DataTable().draw();
+      $('#hits').val(data.hits)
+      $('#msec').val(data.time)
+      nextPage = data.nextPage;
+      prevPage = data.prevPage;
+  }
 
   function getSpecialties(doc) {
     var spec1 = ""
@@ -57,7 +103,11 @@
     $('#example').DataTable( {
       paging: false,
       searching: false
-     })
+     });
+    var nextUrl = '';
+    var nextPage = 1;
+    var prevPage = 1;
+    var foo = 'fum';
   });
 
 </script>
@@ -78,6 +128,8 @@
   <br>
   <br><br>
   <button type="submit" id="submitBtn" name="submitBtn" style="padding:8px">Find Providers</button>
+  <button type="button" id="nextBtn" name = "nextBtn" style="padding:8px">Next</button>
+  <button type="button" id="prevBtn" name = "prevBtn" style="padding:8px">Prev</button>
 </fieldset>
 </form>
 
