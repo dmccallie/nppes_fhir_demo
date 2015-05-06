@@ -54,11 +54,12 @@ def lookup():
 @app.route('/nppes/Practitioner', methods=['GET'])
 def fhir_lookup():
 	#only supports these FHIR fields for demo
-	family        = request.args.get('family').strip()
-	given         = request.args.get('given').strip()
-	address       = request.args.get('address')	.strip()
-	qualification = request.args.get('qualification').strip()
-	specialty     = request.args.get('specialty').strip()
+	family        	= request.args.get('family').strip()
+	given         	= request.args.get('given').strip()
+	address       	= request.args.get('address').strip()
+	qualification 	= request.args.get('qualification').strip()
+	#specialty_code  = request.args.get('specialty').strip() #for now, this gets IGNORED!
+	specialty_text  = request.args.get('specialty:text').strip() #FHIR uses :text for text search on tokens
 
 	queryText = ""
 	wildcard = "*"  #lucene wildcard is applied to some of the search parameters
@@ -71,10 +72,10 @@ def fhir_lookup():
 		for term in address.split():       
 			queryText += "full_address:" + term + wildcard + " "
 	if qualification: queryText += "credential:"   + qualification        + " "
-	if specialty:
+	if specialty_text:
 		specText = ""
 		#allow for either spec_1 OR spec_2 to qualify.  Everything else is an AND
-		for term in specialty.split():
+		for term in specialty_text.split():
 			specText += "spec_1:" + term + wildcard + " OR " + "spec_2:" + term + wildcard + " OR "
 
 		queryText +=  " (" + specText[:-3] + ")"

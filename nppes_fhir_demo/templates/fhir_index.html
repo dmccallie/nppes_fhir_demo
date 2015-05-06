@@ -7,11 +7,11 @@
             type: "GET",
             url: $SCRIPT_ROOT + "nppes/Practitioner",
             contentType: "application/json; charset=utf-8",
-            data: { family:        $('input[name="lastName"]'   ).val(),
-                    given:         $('input[name="firstName"]'  ).val(),
-                    address:       $('input[name="address"]'    ).val(), 
-                    qualification: $('input[name="credential"]' ).val(),
-                    specialty:     $('input[name="specialty"]'  ).val()                    
+            data: { family:           $('input[name="lastName"]'   ).val(),
+                    given:            $('input[name="firstName"]'  ).val(),
+                    address:          $('input[name="address"]'    ).val(), 
+                    qualification:    $('input[name="credential"]' ).val(),
+                    'specialty:text': $('input[name="specialty"]'  ).val()                    
                   },
             success: function(data) {
                 $('#example').DataTable().clear();
