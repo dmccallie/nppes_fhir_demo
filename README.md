@@ -29,6 +29,6 @@ More details later...
 ### Setup
 
  * Launch the stack: `docker-compose up`
- * Load sample data: `docker-compose run web python /code/nppes_fhir_demo/load_nppes_bulk.py`
- * Try it: browse to http://host/nppes_fhir
+ * Load sample data: `docker-compose run web /code/nppes_fhir_demo/load_data.py`
+ * Try it: browse to http://container/nppes_fhir or http://host:8888/nppes_fhir
  * View logs `docker-compose logs`

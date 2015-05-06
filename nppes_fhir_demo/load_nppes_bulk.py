@@ -4,9 +4,18 @@ from elasticsearch import Elasticsearch
 from elasticsearch import helpers
 import json
 import time
+import os
+import argparse
 
-nppes_file = "/data/npidata_20050523-20150412.csv" #download this 5GB file from CMS!
-nucc_file  = "../NPPES_data/nucc_taxonomy_150.csv"
+parser = argparse.ArgumentParser(description='Bulk load NPPES data')
+parser.add_argument('npifile', metavar='N', nargs='?', help='Path to NPI data file',
+                    default="../NPPES_data/npidata_20050523-20150412.csv")
+parser.add_argument('nuccfile', metavar='N', nargs='?', help='Path to NUCC data file',
+                    default="../NPPES_data/nucc_taxonomy_150.csv")
+args = parser.parse_args()
+
+nppes_file = args.npifile #download this 5GB file from CMS!
+nucc_file  = args.nuccfile
 
 #this is the reference data used to specificy provider's specialties
 def load_taxonomy(nucc):
@@ -93,23 +102,19 @@ def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
 
 #main code starts here
 
-count = 0
-nucc_dict = load_taxonomy(nucc_file)
+if __name__ == '__main__':
+	count = 0
+	nucc_dict = load_taxonomy(nucc_file)
+	es_server = os.environ.get('ESDB_PORT_9200_TCP_ADDR') or '127.0.0.1'
+	es_port = os.environ.get('ESDB_PORT_9200_TCP_PORT') or '9200'
 
-import os
-es_server = os.environ.get('ESDB_PORT_9200_TCP_ADDR') or '127.0.0.1'
-es_port = os.environ.get('ESDB_PORT_9200_TCP_PORT') or '9200'
-
-
-es = Elasticsearch([
+	es = Elasticsearch([
 	'%s:%s'%(es_server, es_port)  #point this to your elasticsearch service endpoint
 	]) 
 
-start = time.time()
+	start = time.time()
+	print "start at", start
 
-print "start at", start
-#invoke ES bulk loader using the iterator
-helpers.bulk(es, iter_nppes_data(nppes_file,nucc_dict,convert_to_json))
-print "total time - seconds", time.time()-start
-
-
+	#invoke ES bulk loader using the iterator
+	helpers.bulk(es, iter_nppes_data(nppes_file,nucc_dict,convert_to_json))
+	print "total time - seconds", time.time()-start
