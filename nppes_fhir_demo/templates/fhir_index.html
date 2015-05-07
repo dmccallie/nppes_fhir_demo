@@ -1,5 +1,7 @@
 {% extends "layout.html" %}
 {% block content %}
+
+
 <script type="text/javascript">
   $(function() {
     $("#fhir_search_form").submit(function() {
@@ -11,31 +13,80 @@
                     given:            $('input[name="firstName"]'  ).val(),
                     address:          $('input[name="address"]'    ).val(), 
                     qualification:    $('input[name="credential"]' ).val(),
-                    'specialty:text': $('input[name="specialty"]'  ).val()                    
+                    'specialty:text': $('input[name="specialty"]'  ).val(),
+                    page: 1,
+                    _count: pageSize       
                   },
             success: function(data) {
-                $('#example').DataTable().clear();
-                for (var i = 0; i<data.data.length; i++) {
-                    var doc = data.data[i];
-                    specs = getSpecialties(doc);
-                    $('#example').DataTable().row.add( [
-                      doc.name.given[0],
-                      doc.name.family[0],
-                      doc.name.suffix[0],
-                      doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
-                      doc.telecom[0].value,
-                      specs.spec1,
-                      specs.spec2
-                    ]);
-                }
-                $('#example').DataTable().draw();
-                $('#hits').val(data.hits)
-                $('#msec').val(data.time)
-              }
-            });
+              update_table(data);
+            }
+          });
         });
+      $('#nextBtn').click(function() {
+        //alert("clicked");
+         $.ajax({
+            type: "GET",
+            url: nextUrl,
+            //url: $SCRIPT_ROOT + "nppes/Practitioner",
+            contentType: "application/json; charset=utf-8",
+            success: function(data) {
+              update_table(data);
+            }
+          });      
+        });
+      $('#prevBtn').click(function() {
+         //alert("clicked");
+         params = QueryStringToHash(prevUrl);
+         itemCount = params['page'] * pageSize;
+         $.ajax({
+            type: "GET",
+            url: prevUrl,
+            //url: $SCRIPT_ROOT + "nppes/Practitioner",
+            contentType: "application/json; charset=utf-8",
+            success: function(data) {
+              update_table(data);
+            }
+          });      
+        });      
     });
   //});
+
+  function update_table (data) {
+      $('#example').DataTable().clear();
+      itemCount = data.startfrom;
+      for (var i = 0; i<data.data.length; i++) {
+          itemCount = itemCount + 1;
+          var doc = data.data[i];
+          specs = getSpecialties(doc);
+          $('#example').DataTable().row.add( [
+            itemCount,
+            doc.name.given[0],
+            doc.name.family[0],
+            doc.name.suffix[0],
+            doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
+            doc.telecom[0].value,
+            specs.spec1,
+            specs.spec2
+          ]);
+      }
+      $('#example').DataTable().draw();
+      $('#hits').val(data.hits);
+      $('#msec').val(data.time);
+
+      nextUrl = data.nextUrl;
+      prevUrl = data.prevUrl;
+
+      if (nextUrl == '') { 
+        $('#nextBtn').prop("disabled", true);
+      } else {
+        $('#nextBtn').prop("disabled", false);        
+      }
+      if (prevUrl == '') { 
+        $('#prevBtn').prop("disabled", true);
+      } else {
+        $('#prevBtn').prop("disabled", false);        
+      }
+  }
 
   function getSpecialties(doc) {
     var spec1 = ""
@@ -52,16 +103,49 @@
     return { 'spec1':spec1, 'spec2':spec2 }
   }
 
+//not currently using this, but keep it around in case!
+var QueryStringToHash = function QueryStringToHash  (query) {
+  //borrowed from @Quentin (Stack Overflow)
+  var query_string = {};
+  var vars = query.split("&");
+  for (var i=0;i<vars.length;i++) {
+    var pair = vars[i].split("=");
+    pair[0] = decodeURIComponent(pair[0]);
+    pair[1] = decodeURIComponent(pair[1]);
+      // If first entry with this name
+    if (typeof query_string[pair[0]] === "undefined") {
+      query_string[pair[0]] = pair[1];
+      // If second entry with this name
+    } else if (typeof query_string[pair[0]] === "string") {
+      var arr = [ query_string[pair[0]], pair[1] ];
+      query_string[pair[0]] = arr;
+      // If third or later entry with this name
+    } else {
+      query_string[pair[0]].push(pair[1]);
+    }
+  } 
+  return query_string;
+};
+
+
+  //globals?
+  var itemCount = 0
+  var pageSize = 15
+
   $(document).ready(function() {
     
     $('#example').DataTable( {
       paging: false,
       searching: false
-     })
+    });
   });
 
 </script>
 
+<head>
+  <style>
+    label { display: inline-block; width: 100px; text-align: right; }
+  </style>
 
 <form id="fhir_search_form" onsubmit="return false">
 <fieldset style="padding:5px">
@@ -77,7 +161,9 @@
   <label for="specialty" style="padding-right:10px">Specialty:</label><input type="text" size="30" id="specialty" name="specialty" style="padding:5px">
   <br>
   <br><br>
-  <button type="submit" id="submitBtn" name="submitBtn" style="padding:8px">Find Providers</button>
+  <button type="button" id="prevBtn" name = "prevBtn" style="padding:8px"><--Prev</button>
+  <button type="submit" id="submitBtn" name="submitBtn" style="padding:12px">Find Providers</button>
+  <button type="button" id="nextBtn" name = "nextBtn" style="padding:8px">Next--></button>
 </fieldset>
 </form>
 
@@ -91,6 +177,7 @@
 <table id="example" class="display compact" cellspacing="0" width="100%" style="font-size:14px">
         <thead>
             <tr>
+                <th style="width:5">&nbsp;#&nbsp;</th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th style="width:10">Credential</th>
@@ -103,6 +190,7 @@
  
         <tfoot>
             <tr>
+                <th>&nbsp;#&nbsp;</th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Credential</th>
@@ -113,4 +201,5 @@
             </tr>
         </tfoot>
     </table>
+</head>
 {% endblock %}
