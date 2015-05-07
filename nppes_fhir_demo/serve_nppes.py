@@ -68,9 +68,6 @@ def fhir_lookup():
 	#calculate starting point
 	startfrom = (page-1) * count
 
-	#nextUrl = '%s?family=%s&?given=%s&page=%s&_count=%s'%(request.base_url,family,given,page+1,count)
-	#print "nextURL = ", nextUrl
-
 	queryText = ""
 	wildcard = "*"  #lucene wildcard is applied to some of the search parameters
 
@@ -117,12 +114,27 @@ def fhir_lookup():
 	else:
 		done = True
 
-	#calculate next and prev page.  Don't go past end of hits
-	nextPage = page+1 if not done else page
-	prevPage = page-1 if page > 1 else 1
+	#calculate URLs for next and prev page.
+	request_params = request.args.copy()
+
+	if not done:
+		request_params['page'] = page + 1
+		nextUrl = request.base_url + "?" + urllib.urlencode(request_params)
+	else:
+		nextUrl = ''
+
+	if page > 1:
+		request_params['page'] = page - 1
+		prevUrl = request.base_url + "?" + urllib.urlencode(request_params)
+	else:
+		prevUrl = ''
+
+	#nextUrl = '%s?family=%s&?given=%s&page=%s&_count=%s'%(request.base_url,family,given,page+1,count)
+	print "nextURL = ", nextUrl	
+	print "prevURL = ", prevUrl	
 
 	#This is not really a legal FHIR return.  But it's close enough for demo
-	return jsonify({'hits':total, 'time':time, 'data': providers, 'nextPage':nextPage,'prevPage':prevPage})
+	return jsonify({'hits':total, 'time':time, 'data': providers, 'nextUrl':nextUrl,'prevUrl':prevUrl, 'startfrom':startfrom})
 
 
 #utility routines
