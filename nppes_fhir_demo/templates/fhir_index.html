@@ -17,13 +17,16 @@
                     page: 1,
                     _count: pageSize       
                   },
+            beforeSend: function(xhr) {
+              $('#fquery').val(this.type + " " + this.url);
+            },
             success: function(data) {
               update_table(data);
             }
           });
         });
       $('#nextBtn').click(function() {
-        //alert("clicked");
+         $('#fquery').val("GET " + nextUrl);
          $.ajax({
             type: "GET",
             url: nextUrl,
@@ -35,7 +38,7 @@
           });      
         });
       $('#prevBtn').click(function() {
-         //alert("clicked");
+         $('#fquery').val("GET " + prevUrl);
          params = QueryStringToHash(prevUrl);
          itemCount = params['page'] * pageSize;
          $.ajax({
@@ -59,7 +62,8 @@
           var doc = data.data[i];
           specs = getSpecialties(doc);
           $('#example').DataTable().row.add( [
-            itemCount,
+            //itemCount,
+            doc.id,
             doc.name.given[0],
             doc.name.family[0],
             doc.name.suffix[0],
@@ -136,8 +140,21 @@ var QueryStringToHash = function QueryStringToHash  (query) {
     
     $('#example').DataTable( {
       paging: false,
-      searching: false
+      searching: false,
+      ordering: false
     });
+
+    $('#example tbody').on('click', 'tr', function () {
+        var npi = $('td', this).eq(0).text();
+        $.ajax({
+            url: $SCRIPT_ROOT + "nppes/Practitioner/" + npi,
+            contentType: "application/json; charset=utf-8",
+            success: function(data) {
+              alert(JSON.stringify(data));
+            }
+          });
+     });
+
   });
 
 </script>
@@ -160,7 +177,7 @@ var QueryStringToHash = function QueryStringToHash  (query) {
   <br>
   <label for="specialty" style="padding-right:10px">Specialty:</label><input type="text" size="30" id="specialty" name="specialty" style="padding:5px">
   <br>
-  <br><br>
+  <br>
   <button type="button" id="prevBtn" name = "prevBtn" style="padding:8px"><--Prev</button>
   <button type="submit" id="submitBtn" name="submitBtn" style="padding:12px">Find Providers</button>
   <button type="button" id="nextBtn" name = "nextBtn" style="padding:8px">Next--></button>
@@ -169,28 +186,42 @@ var QueryStringToHash = function QueryStringToHash  (query) {
 
 </form>
 <form id ="stats">
-<label style="padding-right:10px">Hits:</label><input type="text" size=30 id="hits" name="hits"  readonly>
-<label style="padding-right:10px padding-left:20px">mSec:</label><input type="text" size=30 id="msec" name="msec"  readonly>
+<label style="padding-right:10px">Hits:</label>
+  <input type="text" size="20" id="hits" name="hits" style="font-size:14px"  readonly>
+<label style="padding-right:0px; padding-left:10px">mSec:</label>
+  <input type="text" size="12" id="msec" name="msec" style="font-size:14px"  readonly>
+<br>
+<label style="padding-right:10px; bottom:20px; position:relative" >FHIR Query:</label>
+  <!-- <input type="text" size = "100" rows="2" id="fquery" style="font-size:14px" readonly>  -->
+  <textarea id="fquery" rows="2" cols="100" style="resize:none; font-size:14px; margin-top:5px" disabled="true"></textarea>
 </form>
 
 <strong><div id="echoResult"></div>Matching Providers</strong>
 <table id="example" class="display compact" cellspacing="0" width="100%" style="font-size:14px">
+        <col width="15">
+        <col width="20">
+        <col width="30">
+        <col width="10">
+        <col width="50">
+        <col width="30">
+        <col width="30">
+        <col width="30">       
         <thead>
             <tr>
-                <th style="width:5">&nbsp;#&nbsp;</th>
-                <th>First Name</th>
-                <th>Last Name</th>
+                <th style="width:15">&nbsp;NPI&nbsp;</th>
+                <th style="width:20">First Name</th>
+                <th style="width:30">Last Name</th>
                 <th style="width:10">Credential</th>
-                <th>Address</th>
+                <th style="width:40">Address</th>
                 <th>Direct</th>
-                <th>Specialty</th>
-                <th>Sub-specialty</th>
+                <th style="width:30">Specialty</th>
+                <th style="width:20">Sub-specialty</th>
             </tr>
         </thead>
  
         <tfoot>
             <tr>
-                <th>&nbsp;#&nbsp;</th>
+                <th>&nbsp;NPI&nbsp;</th>
                 <th>First Name</th>
                 <th>Last Name</th>
                 <th>Credential</th>

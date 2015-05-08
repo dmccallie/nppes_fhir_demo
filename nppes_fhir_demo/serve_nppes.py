@@ -51,11 +51,35 @@ def lookup():
 
 	return jsonify({'hits':total, 'time':time, 'data': providers})
 
+#FHIR Practitioner by /npi
+@app.route('/nppes/Practitioner/<npi>', methods=['GET'])
+def handle_npi_lookup(npi):
+	#query was for a specific provider
+	#return the FHIR Practitioner record
+	#npi 			= request.args.get('_id', '').strip()
+	query = "npi:" + npi
+	try:
+		es_reply = es.search(index='nppes', doc_type="provider", q=query)
+	except:
+		print "FAILED to query ES "
+		raise
+	if (es_reply and (es_reply['hits']['total'] == 1)):
+
+		hits = es_reply['hits']['hits']
+		#print "hit = ", hits[0]['_source']
+		return jsonify(convert_to_Practitioner(hits[0]['_source']))
+
+	else:
+		return jsonify("")
+
+
+
 #FHIR Practitioner search service
 @app.route('/nppes/Practitioner', methods=['GET'])
 def fhir_lookup():
 
 	#only supports these FHIR fields for demo
+	npi 			= request.args.get('_id', '').strip()
 	family        	= request.args.get('family', '').strip()
 	given         	= request.args.get('given', '').strip()
 	address       	= request.args.get('address', '').strip()
@@ -130,8 +154,8 @@ def fhir_lookup():
 		prevUrl = ''
 
 	#nextUrl = '%s?family=%s&?given=%s&page=%s&_count=%s'%(request.base_url,family,given,page+1,count)
-	print "nextURL = ", nextUrl	
-	print "prevURL = ", prevUrl	
+	#print "nextURL = ", nextUrl	
+	#print "prevURL = ", prevUrl	
 
 	#This is not really a legal FHIR return.  But it's close enough for demo
 	return jsonify({'hits':total, 'time':time, 'data': providers, 'nextUrl':nextUrl,'prevUrl':prevUrl, 'startfrom':startfrom})
