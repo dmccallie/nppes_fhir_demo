@@ -1,7 +1,7 @@
 web:
   build: .
   ports:
-   - "8888:80"
+   - "8888:8080"
   volumes:
    - .:/code
    - ./NPPES_data:/data

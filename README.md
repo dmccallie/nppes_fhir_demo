@@ -20,8 +20,25 @@ Very brief instructions:
   - `gunicorn -b 0.0.0.0:80 -w 4 serve_nppes:app` 
 
 
-More details later...
-  
+More details:
+
+Set up Python 2.7 and elasticsearch on localhost, then:
+
+```
+https://github.com/dmccallie/nppes_fhir_demo/
+cd nppes_fhir_demo
+pip install -r requirements.txt
+cd NPPES_data
+sh ./download.sh
+cd ../nppes_fhir_demo
+python load_nppes_bulk.py
+
+# in local env
+python serve_nppes.py
+
+# in prod
+gunicorn -b 0.0.0.0:8080 serve_nppes:app
+```
 
 ## Dockerized version
 
@@ -33,6 +50,6 @@ More details later...
 ### Setup
 
  * Launch the stack: `docker-compose up`
- * Load sample data: `docker-compose run web /code/nppes_fhir_demo/load_data.py`
+ * Load sample data: `docker-compose run web /code/nppes_fhir_demo/load_data.sh`
  * Try it: browse to http://container/nppes_fhir or http://host:8888/nppes_fhir
  * View logs `docker-compose logs`
