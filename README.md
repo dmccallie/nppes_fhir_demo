@@ -45,6 +45,6 @@ python serve_nppes.py
 ### Setup
 
  * Launch the stack: `docker-compose up`
- * Load sample data: `docker-compose run web /code/nppes_fhir_demo/load_data.py`
+ * Load sample data: `docker-compose run web /code/nppes_fhir_demo/load_data.sh`
  * Try it: browse to http://container/nppes_fhir or http://host:8888/nppes_fhir
  * View logs `docker-compose logs`
