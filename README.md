@@ -32,7 +32,12 @@ cd NPPES_data
 sh ./download.sh
 cd ../nppes_fhir_demo
 python load_nppes_bulk.py
+
+# in local env
 python serve_nppes.py
+
+# in prod
+gunicorn -b 0.0.0.0:8080 serve_nppes:app
 ```
 
 ## Dockerized version
