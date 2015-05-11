@@ -22,10 +22,10 @@ Very brief instructions:
 
 More details:
 
-Set up Python 2.7 and elasticsearch on localhost, then:
+Set up git, Python 2.7, and elasticsearch on localhost, then:
 
 ```
-https://github.com/dmccallie/nppes_fhir_demo/
+git clone https://github.com/dmccallie/nppes_fhir_demo/
 cd nppes_fhir_demo
 pip install -r requirements.txt
 cd NPPES_data
