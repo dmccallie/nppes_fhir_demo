@@ -6,10 +6,12 @@ import json
 import time
 import os
 import argparse
+import zipfile
 
 parser = argparse.ArgumentParser(description='Bulk load NPPES data')
 parser.add_argument('npifile', metavar='N', nargs='?', help='Path to NPI data file',
-                    default="../NPPES_data/npidata_20050523-20150412.csv")
+                    #defaults to the May zip file - may need to edit this
+                    default="../NPPES_data/NPPES_Data_Dissemination_May_2015.zip")
 parser.add_argument('nuccfile', metavar='N', nargs='?', help='Path to NUCC data file',
                     default="../NPPES_data/nucc_taxonomy_150.csv")
 args = parser.parse_args()
@@ -82,22 +84,28 @@ def convert_to_json(row, nucc_dict):
 
 #create a python iterator for ES's bulk load function
 def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
-	with open(nppes_file) as csvfile:
-		reader = csv.DictReader(csvfile)
-		for row in reader:
-			if not row['NPI Deactivation Date'] and row['Entity Type Code'] == '1':
-				if (row['Provider Last Name (Legal Name)']):
-					npi = row['NPI']
-					body = convert_to_json(row, nucc_dict)
-					if (body):
-						#action instructs the bulk loader how to handle this record
-						action =  {
-        					"_index": "nppes",
-        					"_type": "provider",
-        					"_id": npi,
-        					"_source": body
-        				}
-            			yield action
+	#extract directly from the zip file
+	zipFileInstance = zipfile.ZipFile(nppes_file,"r", allowZip64=True)
+	for zipInfo in zipFileInstance.infolist():
+		#hack - the name can change, so just use the huge CSV. That's the one
+		if zipInfo.file_size > 4000000000:
+			print "found NPI CSV file = ", zipInfo.filename
+			content = zipFileInstance.open(zipInfo, 'rU') #rU = universal newline support!
+			reader = csv.DictReader(content)
+			for row in reader:
+				if not row['NPI Deactivation Date'] and row['Entity Type Code'] == '1':
+					if (row['Provider Last Name (Legal Name)']):
+						npi = row['NPI']
+						body = convert_to_json(row, nucc_dict)
+						if (body):
+							#action instructs the bulk loader how to handle this record
+							action =  {
+		    					"_index": "nppes",
+		    					"_type": "provider",
+		    					"_id": npi,
+		    					"_source": body
+		    				}
+		        			yield action
  	
 
 #main code starts here
@@ -117,4 +125,5 @@ if __name__ == '__main__':
 
 	#invoke ES bulk loader using the iterator
 	helpers.bulk(es, iter_nppes_data(nppes_file,nucc_dict,convert_to_json))
+
 	print "total time - seconds", time.time()-start
