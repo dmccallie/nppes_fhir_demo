@@ -168,37 +168,37 @@ def convert_to_Practitioner(es_provider_doc):
 	#this is a total hack approach.  proof of concept with lots of gaps!
 	prac = {}
 	prac['resourceType'] = "Practitioner"
-	prac['id'] = es_provider_doc['npi'],
+	prac['id'] = es_provider_doc.get('npi',"0"),
 	prac['identifier'] = [{	
 			'use':"official",
 			#'type': { 'coding' : [ {'system': "NPI", 'code': "??", 'text':"NPI" }]},
 			'system': "URI-for-NPI",
-			'value': es_provider_doc['npi'],
+			'value': es_provider_doc.get('npi',"0"),
 		}],
 	prac['name'] = {
 			"use": "official",
-			"family": [ es_provider_doc['lastname'] ],
-			"given": [ es_provider_doc['firstname'] ],
-			"suffix": [ es_provider_doc['credential'] ]
+			"family": [ es_provider_doc.get('lastname') ],
+			"given": [ es_provider_doc.get('firstname') ],
+			"suffix": [ es_provider_doc.get('credential') ]
 		}
 	prac['gender'] = "unknown"
-	address_line = es_provider_doc['mail_address_1']
-	if es_provider_doc['mail_address_2']:
-		address_line += "<br>" + es_provider_doc['mail_address_2']
+	address_line = es_provider_doc.get('mail_address_1')
+	if es_provider_doc.get('mail_address_2'):
+		address_line += "<br>" + es_provider_doc.get('mail_address_2')
 	prac['address'] = { 
 			"use": "work",
 			"line": [ address_line ],
-			"city": es_provider_doc['city'],
-			"state": es_provider_doc['state_abbrev'],
+			"city": es_provider_doc.get('city'),
+			"state": es_provider_doc.get('state_abbrev'),
 			"country": "USA"
 		}
 	prac['telecom'] = [{
 			"system": "Direct",
-			"value": es_provider_doc['lastname'] + "@direct.somehist.com",
+			"value": es_provider_doc.get('lastname') + "@direct.somehist.com",
 			"use": "work"
 		}]
 
-	if es_provider_doc['spec_1']:
+	if es_provider_doc.get('spec_1'):
 		prac['practitionerRole'] = [{
 				#"role": {},
 				"specialty": [
@@ -206,20 +206,20 @@ def convert_to_Practitioner(es_provider_doc):
 					"coding": [{
 						"system": "??",
 						"code": "??",
-						"display": es_provider_doc['spec_1']
+						"display": es_provider_doc.get('spec_1')
 					}],
-					"text": es_provider_doc['spec_1']
+					"text": es_provider_doc.get('spec_1')
 				  }]
 			}]
-	if es_provider_doc['spec_2']:
+	if es_provider_doc.get('spec_2'):
 		prac['practitionerRole'][0]['specialty'].append(
 				 {
 					"coding": [{
 						"system": "??",
 						"code": "??",
-						"display": es_provider_doc['spec_2']
+						"display": es_provider_doc.get('spec_2')
 					}],
-					"text": es_provider_doc['spec_2']
+					"text": es_provider_doc.get('spec_2')
 				 }
 			)
 
@@ -244,4 +244,4 @@ except:
 #if called locally (without gunicorn) then run on localhost port 5000 for debugging
 #otherwise, gunicorn will invoke the "app" entrypoint for WSGI conversation
 if __name__ == '__main__':
-	app.run(host="0.0.0.0", port=5000, debug=True)
+	app.run(host="0.0.0.0", port=80, debug=True)
