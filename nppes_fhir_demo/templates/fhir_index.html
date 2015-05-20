@@ -5,20 +5,32 @@
 <script type="text/javascript">
   $(function() {
     $("#fhir_search_form").submit(function() {
+         var queryparams = {};
+
+         var family = $('input[name="lastName"]'   ).val();
+         if (family) { queryparams['family'] = family; }
+
+         var given  = $('input[name="firstName"]'  ).val();
+         if (given) { queryparams['given'] = given; }
+
+         var address = $('input[name="address"]'    ).val();
+         if (address) { queryparams['address'] = address; }
+
+         var qualification = $('input[name="credential"]' ).val();
+         if (qualification) {queryparams['qualification'] = qualification; }
+
+         var specialty =  $('input[name="specialty"]'  ).val();
+         if (specialty) {queryparams['specialty'] = specialty; }
+         queryparams['page'] = 1;
+         queryparams['_count'] = pageSize;
+
          $.ajax({
             type: "GET",
             url: $SCRIPT_ROOT + "nppes/Practitioner",
             contentType: "application/json; charset=utf-8",
-            data: { family:           $('input[name="lastName"]'   ).val(),
-                    given:            $('input[name="firstName"]'  ).val(),
-                    address:          $('input[name="address"]'    ).val(), 
-                    qualification:    $('input[name="credential"]' ).val(),
-                    'specialty:text': $('input[name="specialty"]'  ).val(),
-                    page: 1,
-                    _count: pageSize       
-                  },
+            data: queryparams,
             beforeSend: function(xhr) {
-              $('#fquery').val(this.type + " " + this.url);
+              $('#fquery').val(this.type + " " + window.location.host + "/" + this.url);
             },
             success: function(data) {
               update_table(data);
@@ -193,7 +205,8 @@ var QueryStringToHash = function QueryStringToHash  (query) {
 <br>
 <label style="padding-right:10px; bottom:20px; position:relative" >FHIR Query:</label>
   <!-- <input type="text" size = "100" rows="2" id="fquery" style="font-size:14px" readonly>  -->
-  <textarea id="fquery" rows="2" cols="100" style="resize:none; font-size:14px; margin-top:5px" disabled="true"></textarea>
+  <textarea id="fquery" rows="2" cols="100" style="resize:none; font-size:14px; margin-top:5px;
+      background-color: #fbdadf; font-style:bold" disabled="true"></textarea>
 </form>
 
 <strong><div id="echoResult"></div>Matching Providers</strong>
