@@ -20,7 +20,7 @@
          if (qualification) {queryparams['qualification'] = qualification; }
 
          var specialty =  $('input[name="specialty"]'  ).val();
-         if (specialty) {queryparams['specialty'] = specialty; }
+         if (specialty) {queryparams['specialty:text'] = specialty; }
          queryparams['page'] = 1;
          queryparams['_count'] = pageSize;
 
