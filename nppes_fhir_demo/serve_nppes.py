@@ -3,6 +3,7 @@ import elasticsearch
 import json
 import urllib
 from collections import OrderedDict #use ordered dictionary to preserve JSON order
+from uuid import uuid4
 
 #creates WSGI entry point for gunicorn
 app = Flask(__name__)
@@ -105,7 +106,7 @@ def fhir_lookup():
 	#calculate URLs for next and prev page.
 	request_params = request.args.copy()
 
-	if not done:
+	if ((not done) and len(providers) >= count):
 		request_params['page'] = page + 1
 		nextUrl = request.base_url + "?" + urllib.urlencode(request_params)
 	else:
@@ -199,7 +200,7 @@ def build_fhir_bundle(total, time, providers, nextUrl, prevUrl, startfrom):
 
 	#first, some header stuff.
 	bundle["resourceType"] = "Bundle"
-	bundle["id"] =  "1234567890"
+	bundle["id"] =  str(uuid4()) #not sure why we need this, but GG says so
 	bundle["type"] =  "searchset"
 	bundle["base"] = "http://davidmccallie.com/nppes"
 	bundle["total"] = total
