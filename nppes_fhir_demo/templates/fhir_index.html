@@ -52,7 +52,7 @@
       $('#prevBtn').click(function() {
          $('#fquery').val("GET " + prevUrl);
          params = QueryStringToHash(prevUrl);
-         itemCount = params['page'] * pageSize;
+         //itemCount = params['page'] * pageSize;
          $.ajax({
             type: "GET",
             url: prevUrl,
@@ -67,11 +67,12 @@
   //});
 
   function update_table (data) {
+      //this does no error checking or validation at all. Fix me.
       $('#example').DataTable().clear();
-      itemCount = data.startfrom;
-      for (var i = 0; i<data.data.length; i++) {
-          itemCount = itemCount + 1;
-          var doc = data.data[i];
+      //itemCount = data.startfrom;
+      for (var i = 0; i<data.entry.length; i++) {
+          //itemCount = itemCount + 1;
+          var doc = data.entry[i].resource;
           specs = getSpecialties(doc);
           $('#example').DataTable().row.add( [
             //itemCount,
@@ -80,17 +81,23 @@
             doc.name.family[0],
             doc.name.suffix[0],
             doc.address.line[0] + "<br>" + doc.address.city + " " + doc.address.state,
-            doc.telecom[0].value,
+            doc.telecom[0].value, //need to validate that it's the Direct Address!
             specs.spec1,
             specs.spec2
           ]);
       }
       $('#example').DataTable().draw();
-      $('#hits').val(data.hits);
-      $('#msec').val(data.time);
+      $('#hits').val(data.total);
+      //$('#msec').val(data.time);
 
-      nextUrl = data.nextUrl;
-      prevUrl = data.prevUrl;
+      //find the next and prev page links
+      if (data.hasOwnProperty('link')) {
+        nextUrl = get_link(data.link, "next");
+        prevUrl = get_link(data.link, "prev");
+      } else {
+        nextUrl = ""
+        prevUrl = ""
+      }
 
       if (nextUrl == '') { 
         $('#nextBtn').prop("disabled", true);
@@ -119,6 +126,16 @@
     return { 'spec1':spec1, 'spec2':spec2 }
   }
 
+  function get_link (links, relation) {
+    // find the desired link relation, if present
+    for (var i=0; i<links.length; i++) {
+      if (links[i].relation.toUpperCase() == relation.toUpperCase()) {
+        return links[i].url;
+      }
+    }
+    return ""
+  }
+
 //not currently using this, but keep it around in case!
 var QueryStringToHash = function QueryStringToHash  (query) {
   //borrowed from @Quentin (Stack Overflow)
@@ -145,7 +162,7 @@ var QueryStringToHash = function QueryStringToHash  (query) {
 
 
   //globals?
-  var itemCount = 0
+  //var itemCount = 0
   var pageSize = 15
 
   $(document).ready(function() {

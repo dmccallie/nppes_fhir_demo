@@ -1,7 +1,8 @@
-from flask import Flask, jsonify, render_template, request
+from flask import Flask, jsonify, render_template, request, Response
 import elasticsearch
 import json
 import urllib
+from collections import OrderedDict #use ordered dictionary to preserve JSON order
 
 #creates WSGI entry point for gunicorn
 app = Flask(__name__)
@@ -13,43 +14,6 @@ es = ""
 def nppes_fhir():
 	return render_template('fhir_index.html') 
 
-#old version, pre-FHIR - no longer used
-@app.route('/nppes/lookup', methods=['GET'])
-def lookup():
-	queryText = request.args.get('queryText')
-	#print "got queryText = ", queryText
-	try:
-		es_reply = es.search(index='nppes', default_operator="AND", size=50, q=queryText)
-	except:
-		print "FAILED to query ES "
-		raise
-	#print "es reply = ", es_reply
-	data = ""
-	#print es_reply
-	total = es_reply['hits']['total']
-	time = es_reply['took']
-	hits = es_reply['hits']['hits']
-	#print total, time
-	#print "hits = ", hits
-	providers = []
-	for h in hits:
-		a_doc = []
-		src = h['_source']
-		a_doc.append(src['firstname'])
-		a_doc.append(src['lastname'])
-		a_doc.append(src['credential'])		
-		a_doc.append(src['mail_address_1'] + " " + \
-					 src['mail_address_2'] + " " + \
-					 src['city'] + " " + \
-					 src['state_abbrev'])
-		#a_doc.append(src['city'])
-		#a_doc.append(src['state_abbrev'])
-		a_doc.append(src['lastname'] + "@direct.somehisp.com")
-		a_doc.append(src['spec_1'])
-		a_doc.append(src['spec_2'])		
-		providers.append(a_doc)
-
-	return jsonify({'hits':total, 'time':time, 'data': providers})
 
 #FHIR Practitioner by /npi
 @app.route('/nppes/Practitioner/<npi>', methods=['GET'])
@@ -66,15 +30,16 @@ def handle_npi_lookup(npi):
 	if (es_reply and (es_reply['hits']['total'] == 1)):
 
 		hits = es_reply['hits']['hits']
-		#print "hit = ", hits[0]['_source']
-		return jsonify(convert_to_Practitioner(hits[0]['_source']))
+
+		prac = build_fhir_Practitioner(hits[0]['_source'])
+		return Response(json.dumps(prac, indent=2, separators=(',', ': ')), mimetype="application/json")
 
 	else:
 		return jsonify("")
 
 
 
-#FHIR Practitioner search service
+#FHIR Practitioner search service - returns FHIR Bundle of matching Pracitioner matches
 @app.route('/nppes/Practitioner', methods=['GET'])
 def fhir_lookup():
 
@@ -111,10 +76,9 @@ def fhir_lookup():
 
 		queryText +=  " (" + specText[:-3] + ")"
 
-	print "generated Lucene query = ", queryText #debug
+	#print "generated Lucene query = ", queryText #debug
 	
-	#invoke ElasticSearch usign the "lucene query mode"
-	#for demo, just fetch first 50 matches.  Need to convert this to "paging" model at some point!
+	#invoke ElasticSearch using the "lucene query mode"
 	try:
 		es_reply = es.search(index='nppes', default_operator="AND", size=count, from_=startfrom, q=queryText)
 	except:
@@ -133,7 +97,7 @@ def fhir_lookup():
 		done = False
 		for h in hits:
 			src = h['_source']
-			a_doc = convert_to_Practitioner(src)
+			a_doc = build_fhir_Practitioner(src)
 			providers.append(a_doc)
 	else:
 		done = True
@@ -152,61 +116,65 @@ def fhir_lookup():
 		prevUrl = request.base_url + "?" + urllib.urlencode(request_params)
 	else:
 		prevUrl = ''
+	
 
-	#nextUrl = '%s?family=%s&?given=%s&page=%s&_count=%s'%(request.base_url,family,given,page+1,count)
-	#print "nextURL = ", nextUrl	
-	#print "prevURL = ", prevUrl	
-
-	#This is not really a legal FHIR return.  But it's close enough for demo
-	return jsonify({'hits':total, 'time':time, 'data': providers, 'nextUrl':nextUrl,'prevUrl':prevUrl, 'startfrom':startfrom})
-
+	the_bundle = build_fhir_bundle(total, time, providers, nextUrl, prevUrl, startfrom)
+	
+	#use Flask Response class instead of jsonify() in order to control JSON use of OrderedDict
+	return Response(json.dumps(the_bundle, indent=2, separators=(',', ': ')), mimetype="application/json")
 
 #utility routines
-def convert_to_Practitioner(es_provider_doc):
-	#convert the results of an ES match to FHIR Practitioner record format (JSON)
+def build_fhir_Practitioner(es_provider_doc):
+	#convert the results of an ES match to FHIR Practitioner record format
 	#build with python structures and then JSONify
 	#this is a total hack approach.  proof of concept with lots of gaps!
-	prac = {}
+
+	prac = OrderedDict()  #allows preservation of dictionary names, for easier debugging
+	#note that OrderedDict literal inits are ugly, e.g.:  OrderedDict( [ (tuple), (tuple) ] )
+
 	prac['resourceType'] = "Practitioner"
-	prac['id'] = es_provider_doc.get('npi',"0"),
-	prac['identifier'] = [{	
-			'use':"official",
-			#'type': { 'coding' : [ {'system': "NPI", 'code': "??", 'text':"NPI" }]},
-			'system': "URI-for-NPI",
-			'value': es_provider_doc.get('npi',"0"),
-		}],
-	prac['name'] = {
-			"use": "official",
-			"family": [ es_provider_doc.get('lastname') ],
-			"given": [ es_provider_doc.get('firstname') ],
-			"suffix": [ es_provider_doc.get('credential') ]
-		}
+	prac['id'] = es_provider_doc.get('npi',"0")
+	prac['identifier'] = [OrderedDict([	
+			('use', "official"),
+			('system', "http://hl7.org/fhir/sid/us-NPI????"),
+			('value', es_provider_doc.get('npi',"0")),
+		])]
+	prac['name'] = OrderedDict([
+			("use", "official"),
+			("family", [ es_provider_doc.get('lastname')]),
+			("given", [ es_provider_doc.get('firstname')]),
+			("suffix", [ es_provider_doc.get('credential')])
+		])
 	prac['gender'] = "unknown"
 	address_line = es_provider_doc.get('mail_address_1')
 	if es_provider_doc.get('mail_address_2'):
 		address_line += "<br>" + es_provider_doc.get('mail_address_2')
-	prac['address'] = { 
-			"use": "work",
-			"line": [ address_line ],
-			"city": es_provider_doc.get('city'),
-			"state": es_provider_doc.get('state_abbrev'),
-			"country": "USA"
-		}
-	prac['telecom'] = [{
-			"system": "Direct",
-			"value": es_provider_doc.get('lastname') + "@direct.somehist.com",
-			"use": "work"
-		}]
+	prac['address'] = OrderedDict([ 
+			("use", "work"),
+			("line", [ address_line ]),
+			("city", es_provider_doc.get('city')),
+			("state", es_provider_doc.get('state_abbrev')),
+			("country", "USA")
+		])
+	prac['telecom'] = [ OrderedDict([
+			("extension", [
+				{
+					"url" : "http://hl7.org/fhir/StructureDefinition/us-core-direct",
+					"valueBoolean" : True
+				}
+			]),
+			("system", "email"),
+			("value", es_provider_doc.get('firstname')[0:1] + "." + es_provider_doc.get('lastname') + "@direct.somehist.com"),
+			("use", "work")
+		])]
 
 	if es_provider_doc.get('spec_1'):
 		prac['practitionerRole'] = [{
-				#"role": {},
 				"specialty": [
 				  {
 					"coding": [{
-						"system": "??",
-						"code": "??",
-						"display": es_provider_doc.get('spec_1')
+						"system": "http://www.wpc-edi.com/codes/taxonomy",
+						"code": "??"
 					}],
 					"text": es_provider_doc.get('spec_1')
 				  }]
@@ -215,15 +183,45 @@ def convert_to_Practitioner(es_provider_doc):
 		prac['practitionerRole'][0]['specialty'].append(
 				 {
 					"coding": [{
-						"system": "??",
-						"code": "??",
-						"display": es_provider_doc.get('spec_2')
+						"system":  "http://www.wpc-edi.com/codes/taxonomy",
+						"code": "??"
 					}],
 					"text": es_provider_doc.get('spec_2')
 				 }
 			)
 
 	return prac
+
+def build_fhir_bundle(total, time, providers, nextUrl, prevUrl, startfrom):
+	#wrap the results into a FHIR bundle.  Ugh.
+
+	bundle = OrderedDict()
+
+	#first, some header stuff.
+	bundle["resourceType"] = "Bundle"
+	bundle["id"] =  "1234567890"
+	bundle["type"] =  "searchset"
+	bundle["base"] = "http://davidmccallie.com/nppes"
+	bundle["total"] = total
+
+	#set up the pageing links
+	bundle["link"] = [
+		{
+			"relation": "next",
+			"url": nextUrl
+		},
+		{
+			"relation" : "prev",
+			"url" : prevUrl
+		}
+	]
+
+	#then, convert each matching practitioner into a entry.resource
+	bundle["entry"] = []
+	for prov in providers:
+		bundle["entry"].append({ "resource" : prov})
+
+	return bundle
 
 
 #main program here
