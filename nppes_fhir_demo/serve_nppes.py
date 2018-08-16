@@ -1,7 +1,9 @@
+#dpm 15Aug2018 - ported to python3
+
 from flask import Flask, jsonify, render_template, request, Response
 import elasticsearch
 import json
-import urllib
+import urllib, urllib.parse
 from collections import OrderedDict #use ordered dictionary to preserve JSON order
 from uuid import uuid4
 
@@ -26,7 +28,7 @@ def handle_npi_lookup(npi):
 	try:
 		es_reply = es.search(index='nppes', doc_type="provider", q=query)
 	except:
-		print "FAILED to query ES "
+		print("FAILED to query ES ")
 		raise
 	if (es_reply and (es_reply['hits']['total'] == 1)):
 
@@ -83,7 +85,7 @@ def fhir_lookup():
 	try:
 		es_reply = es.search(index='nppes', default_operator="AND", size=count, from_=startfrom, q=queryText)
 	except:
-		print "FAILED to query ES "
+		print ("FAILED to query ES ")
 		raise
 	#print "es reply = ", es_reply
 	
@@ -108,13 +110,13 @@ def fhir_lookup():
 
 	if ((not done) and len(providers) >= count):
 		request_params['page'] = page + 1
-		nextUrl = request.base_url + "?" + urllib.urlencode(request_params)
+		nextUrl = request.base_url + "?" + urllib.parse.urlencode(request_params)
 	else:
 		nextUrl = ''
 
 	if page > 1:
 		request_params['page'] = page - 1
-		prevUrl = request.base_url + "?" + urllib.urlencode(request_params)
+		prevUrl = request.base_url + "?" + urllib.parse.urlencode(request_params)
 	else:
 		prevUrl = ''
 	
@@ -235,9 +237,9 @@ try:
 	es = elasticsearch.Elasticsearch([
 	'%s:%s'%(es_server, es_port)  #point this to your elasticsearch service endpoint
 	]) 
-	print "connected to ES"
+	print ("connected to ES")
 except:
-	print "FAILED to connect to ES "
+	print ("FAILED to connect to ES ")
 	raise
 
 #if called locally (without gunicorn) then run on localhost port 5000 for debugging

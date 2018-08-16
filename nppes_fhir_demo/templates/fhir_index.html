@@ -1,3 +1,4 @@
+<!-- dpm - added a clear button 15Aug2018 -->
 {% extends "layout.html" %}
 {% block content %}
 
@@ -62,7 +63,10 @@
               update_table(data);
             }
           });      
-        });      
+        });
+      $('#clearBtn').click(function(){
+        $('#fhir_search_form').trigger('reset');
+      });      
     });
   //});
 
@@ -210,6 +214,7 @@ var QueryStringToHash = function QueryStringToHash  (query) {
   <button type="button" id="prevBtn" name = "prevBtn" style="padding:8px"><--Prev</button>
   <button type="submit" id="submitBtn" name="submitBtn" style="padding:12px">Find Providers</button>
   <button type="button" id="nextBtn" name = "nextBtn" style="padding:8px">Next--></button>
+  <button type="button" id="clearBtn" name = "clearBtn" style="margin-left:20px">CLEAR</button>
 </fieldset>
 </form>
 

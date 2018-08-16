@@ -1,4 +1,5 @@
-import csv
+#dpm - 15Aug2018 - updated to python3
+import csv, sys
 from datetime import datetime
 from elasticsearch import Elasticsearch
 from elasticsearch import helpers
@@ -10,10 +11,11 @@ import zipfile
 
 parser = argparse.ArgumentParser(description='Bulk load NPPES data')
 parser.add_argument('npifile', metavar='N', nargs='?', help='Path to NPI data file',
-                    #defaults to the May zip file - may need to edit this
-                    default="../NPPES_data/NPPES_Data_Dissemination_May_2015.zip")
+					#defaults to the May zip file - may need to edit this
+					#dpm 15Aug2018 - changed to a more recent dissemination
+					default="../NPPES_data/NPPES_Data_Dissemination_August_2018.zip")
 parser.add_argument('nuccfile', metavar='N', nargs='?', help='Path to NUCC data file',
-                    default="../NPPES_data/nucc_taxonomy_150.csv")
+					default="../NPPES_data/nucc_taxonomy_150.csv")
 args = parser.parse_args()
 
 nppes_file = args.npifile #download this 5GB file from CMS!
@@ -22,7 +24,7 @@ nucc_file  = args.nuccfile
 #this is the reference data used to specificy provider's specialties
 def load_taxonomy(nucc):
 	nucc_dict = {}
-	with open(nucc) as nucc_file:
+	with open(nucc, encoding='latin-1') as nucc_file:
 		nucc_reader = csv.DictReader(nucc_file)
 		for row in nucc_reader:
 			code = row['Code']
@@ -55,7 +57,7 @@ def extract_provider(row, nucc_dict):
 	provider_document['mail_address_2'] = row['Provider Second Line Business Mailing Address']
 	provider_document['city'] = row['Provider Business Mailing Address City Name']
 	provider_document['state_abbrev'] = row['Provider Business Mailing Address State Name']
-	provider_document['credential'] = row['Provider Credential Text'].translate(None,".")
+	provider_document['credential'] = row['Provider Credential Text'].replace(".","")
 	provider_document['spec_1'] = nucc_dict.get(row['Healthcare Provider Taxonomy Code_1'],'') 
 	provider_document['spec_2'] = nucc_dict.get(row['Healthcare Provider Taxonomy Code_2'],'')
 	provider_document['spec_3'] = nucc_dict.get(row['Healthcare Provider Taxonomy Code_3'],'')
@@ -74,25 +76,31 @@ def convert_to_json(row, nucc_dict):
 	#some kind of funky problem with non-ascii strings here
 	#trap and reject any records that aren't full ASCII.
 	#fix me!
+	
+	provider_doc = extract_provider(row, nucc_dict)
 	try:
-		provider_doc = extract_provider(row, nucc_dict)
 		j = json.dumps(provider_doc, ensure_ascii=True)
-	except Exception, e:
-		print "FAILED convert a provider record to ASCII = ", row['NPI']
+		#print("Successful json for ", j)
+	except Exception:
+		print("FAILED convert a provider record to ASCII = ", row['NPI'])
+		#print("Unexpected error:", sys.exc_info()[0])
 		j = None
 	return j
 
 #create a python iterator for ES's bulk load function
 def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
+	count = 0
 	#extract directly from the zip file
-	zipFileInstance = zipfile.ZipFile(nppes_file,"r", allowZip64=True)
+	zipFileInstance = zipfile.ZipFile(nppes_file, mode='r', allowZip64=True)
 	for zipInfo in zipFileInstance.infolist():
 		#hack - the name can change, so just use the huge CSV. That's the one
 		if zipInfo.file_size > 4000000000:
-			print "found NPI CSV file = ", zipInfo.filename
-			content = zipFileInstance.open(zipInfo, 'rU') #rU = universal newline support!
-			reader = csv.DictReader(content)
+			print("found NPI CSV file = ", zipInfo.filename)
+			content = zipFileInstance.open(zipInfo, 'r') #can't use 'rt' anymore
+			decoded_content = (line.decode('utf8') for line in content) #funky trick to turn py3 bytes to string
+			reader = csv.DictReader(decoded_content)
 			for row in reader:
+				#print("GOT A ROW = ", row['Provider Last Name (Legal Name)'])
 				if not row['NPI Deactivation Date'] and row['Entity Type Code'] == '1':
 					if (row['Provider Last Name (Legal Name)']):
 						npi = row['NPI']
@@ -105,7 +113,10 @@ def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
 		    					"_id": npi,
 		    					"_source": body
 		    				}
-		        			yield action
+							count += 1
+							if count % 5000 == 0:
+								print("Count: Loaded {} records".format(count))
+							yield action
  	
 
 #main code starts here
@@ -121,9 +132,9 @@ if __name__ == '__main__':
 	]) 
 
 	start = time.time()
-	print "start at", start
+	print ("start at", start)
 
 	#invoke ES bulk loader using the iterator
 	helpers.bulk(es, iter_nppes_data(nppes_file,nucc_dict,convert_to_json))
 
-	print "total time - seconds", time.time()-start
+	print ("total time - seconds", time.time()-start)
