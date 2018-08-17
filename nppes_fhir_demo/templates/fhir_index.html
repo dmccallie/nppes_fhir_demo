@@ -8,6 +8,9 @@
     $("#fhir_search_form").submit(function() {
          var queryparams = {};
 
+         var anystring = $('input[name="anystring"]'   ).val();
+         if (anystring) { queryparams['anystring'] = anystring; }
+
          var family = $('input[name="lastName"]'   ).val();
          if (family) { queryparams['family'] = family; }
 
@@ -198,8 +201,10 @@ var QueryStringToHash = function QueryStringToHash  (query) {
   </style>
 
 <form id="fhir_search_form" onsubmit="return false">
-<fieldset style="padding:5px">
+<fieldset style="padding:8px">
 <legend><bold>Search for a provider - enter name and/or address (street, city, state,) credential, or specialty</bold></legend>
+  <label for="anystring" style="padding-right:10px">Any String:</label><input type="text" size="80" id="anystring" name="anystring" style="padding:5px">
+  <br><br>  
   <label for="lastName" style="padding-right:10px">Last Name:</label><input type="text" size="30" id="lastName" name="lastName" style="padding:5px">
   <br>
   <label for="firstName" style="padding-right:10px">First Name:</label><input type="text" size="30" id="firstName" name="firstName" style="padding:5px">

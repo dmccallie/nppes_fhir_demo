@@ -47,6 +47,7 @@ def handle_npi_lookup(npi):
 def fhir_lookup():
 
 	#only supports these FHIR fields for demo
+	anystring		= request.args.get('anystring', '').strip() #dpm - added for demo of open-ended query approach
 	npi 			= request.args.get('_id', '').strip()
 	family        	= request.args.get('family', '').strip()
 	given         	= request.args.get('given', '').strip()
@@ -63,23 +64,36 @@ def fhir_lookup():
 	queryText = ""
 	wildcard = "*"  #lucene wildcard is applied to some of the search parameters
 
-	#build a Lucene query string - see Lucene documentation for syntax
-	if family:        queryText += "lastname:"     + family    + wildcard + "^4" + " "
-	if given:         queryText += "firstname:"    + given     + wildcard + " "
-	if address:
-		#apply wildcard to each part of whatever user entered (street, city, state code)
-		for term in address.split():       
-			queryText += "full_address:" + term + wildcard + " "
-	if qualification: queryText += "credential:"   + qualification        + " "
-	if specialty_text:
-		specText = ""
-		#allow for either spec_1 OR spec_2 to qualify.  Everything else is an AND
-		for term in specialty_text.split():
-			specText += "spec_1:" + term + wildcard + " OR " + "spec_2:" + term + wildcard + " OR "
+	#if 'anystring' is not empty, do the whole query with terms contained in the string
+	#this means no special weighting of lastname, etc
+	#it's an experiment
 
-		queryText +=  " (" + specText[:-3] + ")"
+	if len(anystring)>0:
+		#strip periods and dashes
+		anystring = anystring.replace(".","").replace("-","")
+		#split into words to form query terms - wildcard them all for now
+		for term in anystring.split():
+			queryText += (term + wildcard + " ")
+	
+	else:
 
-	#print "generated Lucene query = ", queryText #debug
+		#build a Lucene query string - see Lucene documentation for syntax
+		if family:        queryText += "lastname:"     + family    + wildcard + "^4" + " "
+		if given:         queryText += "firstname:"    + given     + wildcard + " "
+		if address:
+			#apply wildcard to each part of whatever user entered (street, city, state code)
+			for term in address.split():       
+				queryText += "full_address:" + term + wildcard + " "
+		if qualification: queryText += "credential:"   + qualification        + " "
+		if specialty_text:
+			specText = ""
+			#allow for either spec_1 OR spec_2 to qualify.  Everything else is an AND
+			for term in specialty_text.split():
+				specText += "spec_1:" + term + wildcard + " OR " + "spec_2:" + term + wildcard + " OR "
+
+			queryText +=  " (" + specText[:-3] + ")"
+
+	print ("generated Lucene query = ", queryText) #debug
 	
 	#invoke ElasticSearch using the "lucene query mode"
 	try:

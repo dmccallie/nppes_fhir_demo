@@ -70,6 +70,15 @@ def extract_provider(row, nucc_dict):
 										provider_document['city'] + " " + \
 										provider_document['state_abbrev']
 
+	#experiment with an "all" field to allow for a single query line that doesn't require field-by-field query
+	provider_document['all'] =	provider_document['firstname']    + " " + \
+								provider_document['lastname']     + " " + \
+								provider_document['full_address'] + " " + \
+								provider_document['credential']   + " " + \
+								provider_document['spec_1']       + " " + \
+								provider_document['spec_2']       + " " + \
+								provider_document['spec_3']
+
 	return provider_document
 
 def convert_to_json(row, nucc_dict):
@@ -108,16 +117,65 @@ def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
 						if (body):
 							#action instructs the bulk loader how to handle this record
 							action =  {
-		    					"_index": "nppes",
-		    					"_type": "provider",
-		    					"_id": npi,
-		    					"_source": body
-		    				}
+								"_index": "nppes",
+								"_type": "provider",
+								"_id": npi,
+								"_source": body
+							}
 							count += 1
 							if count % 5000 == 0:
 								print("Count: Loaded {} records".format(count))
 							yield action
  	
+
+#dpm 16Aug2018 - added explict creation of indexes to optimize for space, etc
+
+def create_index(es_object, index_name='nppes'):
+	created = False
+	# index settings
+	settings = {
+		"settings": {
+			"number_of_shards": 5,
+			"number_of_replicas": 0
+		},
+		"mappings": {
+			"provider": {
+				"dynamic": "strict",
+				"properties": {
+					"npi":              { "type": "text"},
+					"firstname":        { "type": "text", "norms": False, "index_options": "freqs" },
+					"lastname":         { "type": "text", "norms": False, "index_options": "freqs" },
+					"mail_address_1":   { "type": "text", "norms": False, "index_options": "freqs" },
+					"mail_address_2":   { "type": "text", "norms": False, "index_options": "freqs" },
+					"city":             { "type": "text", "norms": False, "index_options": "freqs" },
+					"state_abbrev":     { "type": "text", "norms": False, "index_options": "freqs" },
+					"credential":       { "type": "text", "norms": False, "index_options": "freqs" },
+					"spec_1":           { "type": "text", "norms": False, "index_options": "freqs" },
+					"spec_2":           { "type": "text", "norms": False, "index_options": "freqs" },
+					"spec_3":           { "type": "text", "norms": False, "index_options": "freqs" },
+					"all":              { "type": "text", "norms": False, "index_options": "freqs" },
+				}
+			},
+			"_doc": {
+				"_source": {
+					"excludes": [
+						"*.all",  #dpm - this doesn't appear to work, don't know why.
+					]
+				}
+			}
+		}
+	}
+	try:
+		if not es_object.indices.exists(index_name):
+			# Ignore 400 means to ignore "Index Already Exist" error.
+			es_object.indices.create(index=index_name, ignore=400, body=settings)
+			print('Created Index')
+			created = True
+	except Exception as ex:
+		print(str(ex))
+	finally:
+		return created
+
 
 #main code starts here
 
@@ -134,6 +192,8 @@ if __name__ == '__main__':
 	start = time.time()
 	print ("start at", start)
 
+	create_index(es, index_name='nppes')
+	
 	#invoke ES bulk loader using the iterator
 	helpers.bulk(es, iter_nppes_data(nppes_file,nucc_dict,convert_to_json))
 
