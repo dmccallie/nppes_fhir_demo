@@ -63,6 +63,7 @@ def fhir_lookup():
 
 	queryText = ""
 	wildcard = "*"  #lucene wildcard is applied to some of the search parameters
+	fuzzy = "~"
 
 	#if 'anystring' is not empty, do the whole query with terms contained in the string
 	#this means no special weighting of lastname, etc
@@ -71,9 +72,16 @@ def fhir_lookup():
 	if len(anystring)>0:
 		#strip periods and dashes
 		anystring = anystring.replace(".","").replace("-","")
-		#split into words to form query terms - wildcard them all for now
+		#split into words to form query terms
+		#test support of wildcard AND fuzzy match, using an "OR" approach
+		#e.g., to query for "mcca~*" will try (mcca~ OR mcca*) -- maybe less explosion?
+		#note that you can do "term~*" but the term explosion is huge
+
+		queryText = "all:( "  #force query against the "all" field
 		for term in anystring.split():
-			queryText += (term + wildcard + " ")
+			#synonyms don't work if wildcard or fuzzy is added to term.  weird.
+			queryText += "( {t} OR {t}{f} OR {t}{w} )".format(t=term, f=fuzzy, w=wildcard)
+		queryText += " )"
 	
 	else:
 
@@ -89,9 +97,10 @@ def fhir_lookup():
 			specText = ""
 			#allow for either spec_1 OR spec_2 to qualify.  Everything else is an AND
 			for term in specialty_text.split():
-				specText += "spec_1:" + term + wildcard + " OR " + "spec_2:" + term + wildcard + " OR "
+				#in order for synonyms to work, you need the term without the wildcard???
+				specText += " spec_1:({t} OR {t}{w}) OR spec_2:({t} OR {t}{w}) ".format(t=term, w=wildcard)
 
-			queryText +=  " (" + specText[:-3] + ")"
+			queryText +=  " (" + specText + ") "
 
 	print ("generated Lucene query = ", queryText) #debug
 	
@@ -108,6 +117,8 @@ def fhir_lookup():
 	time = es_reply['took']		#milliseconds of ES time
 
 	#get root of results
+	#print("es reply = ", es_reply)
+
 	hits = es_reply['hits']['hits']
 	providers = []
 	if (len(hits) > 0):
@@ -145,6 +156,7 @@ def build_fhir_Practitioner(es_provider_doc):
 	#convert the results of an ES match to FHIR Practitioner record format
 	#build with python structures and then JSONify
 	#this is a total hack approach.  proof of concept with lots of gaps!
+	# NOTE: this is a very old version of FHIR's Practitioner!  Needs to be re-mapped to newer STU
 
 	prac = OrderedDict()  #allows preservation of dictionary names, for easier debugging
 	#note that OrderedDict literal inits are ugly, e.g.:  OrderedDict( [ (tuple), (tuple) ] )

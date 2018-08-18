@@ -130,17 +130,45 @@ def iter_nppes_data(nppes_file, nucc_dict, convert_to_json):
 
 #dpm 16Aug2018 - added explict creation of indexes to optimize for space, etc
 
-def create_index(es_object, index_name='nppes'):
+def create_index(es_object, index_name):
 	created = False
 	# index settings
 	settings = {
 		"settings": {
-			"number_of_shards": 5,
-			"number_of_replicas": 0
+			"index" : {
+				"number_of_shards": 2,  #doesn't work???
+				"number_of_replicas": 0,
+			},
+			"index" : {
+				"analysis" : {
+					"filter" : {
+						"synonym" : {
+							"type" : "synonym",
+							"synonyms" : [					#some examples, should be in separate file, etc
+								"internist => internal",
+								"gi => gastroenterology",
+								"knife => surgical, surgeon, surgery",
+								"obgyn => obstetrics, gynecology",
+								"peds => pediatric, pediatrics"
+							]
+						},
+					},
+					"analyzer" : {
+						"synonym" : {
+							"tokenizer" : "standard",
+							"filter" : [
+								"lowercase", 
+							    "synonym"
+							]
+						},
+					},
+
+				},
+			},
 		},
 		"mappings": {
 			"provider": {
-				"dynamic": "strict",
+				#"dynamic": "strict",
 				"properties": {
 					"npi":              { "type": "text"},
 					"firstname":        { "type": "text", "norms": False, "index_options": "freqs" },
@@ -150,29 +178,32 @@ def create_index(es_object, index_name='nppes'):
 					"city":             { "type": "text", "norms": False, "index_options": "freqs" },
 					"state_abbrev":     { "type": "text", "norms": False, "index_options": "freqs" },
 					"credential":       { "type": "text", "norms": False, "index_options": "freqs" },
-					"spec_1":           { "type": "text", "norms": False, "index_options": "freqs" },
-					"spec_2":           { "type": "text", "norms": False, "index_options": "freqs" },
-					"spec_3":           { "type": "text", "norms": False, "index_options": "freqs" },
-					"all":              { "type": "text", "norms": False, "index_options": "freqs" },
-				}
+					"spec_1":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
+					"spec_2":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
+					"spec_3":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
+					"all":              { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
+				},
 			},
-			"_doc": {
-				"_source": {
-					"excludes": [
-						"*.all",  #dpm - this doesn't appear to work, don't know why.
-					]
-				}
-			}
+			#"_doc": {
+			#	"_source": {
+			#		"excludes": [
+			#			"*.all",  #dpm - this doesn't appear to work, don't know why.
+			#		]
+			#	}
+			#}
 		}
 	}
 	try:
-		if not es_object.indices.exists(index_name):
-			# Ignore 400 means to ignore "Index Already Exist" error.
-			es_object.indices.create(index=index_name, ignore=400, body=settings)
-			print('Created Index')
-			created = True
+		if es_object.indices.exists(index_name):
+			es_object.indices.delete(index=index_name, ignore=400)
+			print("Deleted old index")
+
+		# Ignore 400 means to ignore "Index Already Exist" error.
+		es_object.indices.create(index=index_name, body=settings)
+		print('Created new index at {}'.format(index_name))
+		created = True
 	except Exception as ex:
-		print(str(ex))
+		print("index creation exception: ", str(ex))
 	finally:
 		return created
 
