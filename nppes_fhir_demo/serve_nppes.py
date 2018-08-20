@@ -86,18 +86,31 @@ def fhir_lookup():
 	else:
 
 		#build a Lucene query string - see Lucene documentation for syntax
-		if family:        queryText += "lastname:"     + family    + wildcard + "^4" + " "
-		if given:         queryText += "firstname:"    + given     + wildcard + " "
+		#dpm - for phonectic experiments, drop the wildcard for the phonetic, but OR it in for non-phonetic
+		#  probably ought to have separate fields for the phonetic vs non-phonetic??
+
+		wildcard = "*"
+		if family:
+			queryText += "lastname:( {f} OR {f}{w} )^4 ".format(f=family, w=wildcard)
+		if given:
+			queryText += "firstname:( {g} OR {g}{w} ) ".format(g=given,w=wildcard)
 		if address:
 			#apply wildcard to each part of whatever user entered (street, city, state code)
-			for term in address.split():       
-				queryText += "full_address:" + term + wildcard + " "
+			for term in address.split():
+				#this is a hack - probably need these fields to be individually named
+				# hack2 = if field is len==2, assume it's a state code (fixme doh!)       
+				if len(term) == 2:
+					queryText += "full_address:({t}) ".format(t=term)
+				else:
+					queryText += "full_address:( {t} OR {t}{w} ) ".format(t=term, w=wildcard)
+	
 		if qualification: queryText += "credential:"   + qualification        + " "
 		if specialty_text:
 			specText = ""
 			#allow for either spec_1 OR spec_2 to qualify.  Everything else is an AND
 			for term in specialty_text.split():
 				#in order for synonyms to work, you need the term without the wildcard???
+				wildcard = "*"
 				specText += " spec_1:({t} OR {t}{w}) OR spec_2:({t} OR {t}{w}) ".format(t=term, w=wildcard)
 
 			queryText +=  " (" + specText + ") "

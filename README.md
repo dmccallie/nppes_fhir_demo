@@ -24,7 +24,8 @@ NOTE what's still missing (and won't likely get added)
 
 ## Very brief instructions:
 
-- Install and launch Elasticsearch. I took all the defaults, which is overkill, but it works. On the mac, 'brew' can install elasticsearch and kibana with no problems
+- Install and launch Elasticsearch. I took all the defaults, which is overkill, but it works. On the mac, 'brew' can install elasticsearch and kibana with no problems. To use the phonetic analyzer, you will also need to install the phonetic plugin, using something like this:
+  - ```sudo bin/elasticsearch-plugin install analysis-phonetic```
 - Use python to "pip install" Flask, elasticsearch, and gunicorn
 - Run the "download.sh" script in NPPES_data to download the NPPES file from CMS, and the "taxonomy" file from NUCC. You might need to edit this file to refer to a more recent CMS distribution of the NPPES database!
 - the bulk_load_nppes script can now read directly from the zip file, so there is no need to extract the 5GB CSV file

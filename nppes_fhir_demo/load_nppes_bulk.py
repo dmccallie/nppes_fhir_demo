@@ -152,35 +152,47 @@ def create_index(es_object, index_name):
 								"peds => pediatric, pediatrics"
 							]
 						},
-					},
+						"test_phonetic": {
+							"type": "phonetic",
+							"encoder": "double_metaphone",
+							"replace": False
+						}
+					},					
 					"analyzer" : {
 						"synonym" : {
 							"tokenizer" : "standard",
 							"filter" : [
-								"lowercase", 
-							    "synonym"
+								"lowercase", "synonym"
 							]
 						},
+						"phonetic": {
+							"tokenizer": "standard",
+							"filter": [
+								"standard", "lowercase", "test_phonetic"
+							]
+						}
 					},
-
 				},
 			},
 		},
 		"mappings": {
 			"provider": {
-				#"dynamic": "strict",
+				"dynamic": "strict",
 				"properties": {
 					"npi":              { "type": "text"},
-					"firstname":        { "type": "text", "norms": False, "index_options": "freqs" },
-					"lastname":         { "type": "text", "norms": False, "index_options": "freqs" },
-					"mail_address_1":   { "type": "text", "norms": False, "index_options": "freqs" },
-					"mail_address_2":   { "type": "text", "norms": False, "index_options": "freqs" },
-					"city":             { "type": "text", "norms": False, "index_options": "freqs" },
+					"firstname":        { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
+					"lastname":         { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
+					"mail_address_1":   { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
+					"mail_address_2":   { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
+					"city":             { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
 					"state_abbrev":     { "type": "text", "norms": False, "index_options": "freqs" },
 					"credential":       { "type": "text", "norms": False, "index_options": "freqs" },
 					"spec_1":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
 					"spec_2":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
 					"spec_3":           { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
+					
+					#pseudo-fields
+					"full_address":     { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "phonetic" },
 					"all":              { "type": "text", "norms": False, "index_options": "freqs", "analyzer" : "synonym" },
 				},
 			},

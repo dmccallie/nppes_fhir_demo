@@ -202,7 +202,10 @@ var QueryStringToHash = function QueryStringToHash  (query) {
 
 <form id="fhir_search_form" onsubmit="return false">
 <fieldset style="padding:8px">
-<legend><bold>Search for a provider - enter name and/or address (street, city, state,) credential, or specialty</bold></legend>
+<legend><bold>Search for a provider - enter name and/or address (street, city, state,) credential, or specialty<br>
+  NOTE: 'Any String' field uses fuzzy match and wildards<br>
+  BUT the named fields use wildcard and phonetic (double metaphone)
+</bold></legend>
   <label for="anystring" style="padding-right:10px">Any String:</label><input type="text" size="80" id="anystring" name="anystring" style="padding:5px">
   <br><br>  
   <label for="lastName" style="padding-right:10px">Last Name:</label><input type="text" size="30" id="lastName" name="lastName" style="padding:5px">
